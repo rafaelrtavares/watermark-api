@@ -29,7 +29,7 @@ fastify.get('/watermark', async (request, reply) => {
         const metadata = await mainImg.metadata();
 
         // Logo proporcional (20% da largura da imagem principal)
-        const logoWidth = Math.floor(metadata.width * 0.20);
+        const logoWidth = Math.floor(metadata.width * 0.35);
         
         const processedLogo = await sharp(logoRes.data)
             .resize(logoWidth)
@@ -60,4 +60,5 @@ const start = async () => {
         process.exit(1);
     }
 };
+
 start();
