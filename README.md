@@ -1,4 +1,5 @@
 # 🚀 Watermark-API | etix
+![Exemplo de imagem com marca d'água gerado pela API](./watermark-api-example.png)
 
 Uma API Node.js de alta performance para processamento de imagens e aplicação dinâmica de marcas d'água. Desenvolvida para a **etix** (e integrada ao ecossistema do **Cuponiza**), esta API permite sobrepor logos em imagens de produtos de forma proporcional e automatizada.
 
