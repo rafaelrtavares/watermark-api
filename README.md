@@ -46,7 +46,7 @@ Para testar e desenvolver em sua máquina local:
 
 1. **Clone o repositório:**
    ```bash
-   git clone [https://github.com/rafaelrtavares/watermark-api.git](https://github.com/rafaelrtavares/watermark-api.git)
+   git clone https://github.com/rafaelrtavares/watermark-api.git
    cd watermark-api
 
 2. **Instale as dependências:**
