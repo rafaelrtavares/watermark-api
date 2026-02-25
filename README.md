@@ -57,5 +57,21 @@ Para testar e desenvolver em sua máquina local:
    npm start
 
 4. **Teste no navegador:**
-   A API estará rodando por padrão na porta 3028.
-   URL de Teste: http://localhost:3028/watermark?main=LINK_IMAGEM&logo=LINK_LOGO&pos=canto
+   * A API estará rodando por padrão na porta 3028.
+   * URL de Teste:
+   ```bash
+   http://localhost:3028/watermark?main=LINK_IMAGEM&logo=LINK_LOGO&pos=canto
+
+---
+
+## 🧑‍💻 Desenvolvido por
+
+**Rafael Rodrigues Tavares**
+* **LinkedIn:** [linkedin.com/in/tavaresrafael](https://www.linkedin.com/in/tavaresrafael/)
+* **GitHub:** [@rafaelrtavares](https://github.com/rafaelrtavares)
+
+---
+
+## 📄 Licença
+
+Este projeto está sob a licença MIT.
