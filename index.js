@@ -1,67 +1,75 @@
 const fastify = require('fastify')({ logger: true });
 const sharp = require('sharp');
 const axios = require('axios');
-const multipart = require('@fastify/multipart');
 
-// Registra o plugin para suportar arquivos enviados pelo n8n
-fastify.register(multipart, { attachFieldsToBody: true });
-
-// Função central de processamento para evitar repetição de código
-async function processWatermark(mainBuffer, logoUrl, selectedPos) {
-    const logoRes = await axios.get(logoUrl, { responseType: 'arraybuffer' });
-    const positions = { 'centro': 'center', 'cima': 'north', 'baixo': 'south', 'canto': 'southeast' };
-    const gravity = positions[selectedPos] || 'center';
-
-    const mainImg = sharp(mainBuffer);
-    const metadata = await mainImg.metadata();
-    const squareSize = Math.max(metadata.width, metadata.height);
-
-    const logoWidth = Math.floor(squareSize * 0.30);
-    const processedLogo = await sharp(logoRes.data).resize(logoWidth).toBuffer();
-
-    return await mainImg
-        .resize(squareSize, squareSize, {
-            fit: 'contain',
-            background: { r: 255, g: 255, b: 255, alpha: 1 }
-        })
-        .composite([{ input: processedLogo, gravity }])
-        .png()
-        .toBuffer();
-}
-
-// 1. GET para Imegens com URLs
 fastify.get('/watermark', async (request, reply) => {
     const { main, logo, pos = 'centro' } = request.query;
-    if (!main || !logo) return reply.status(400).send({ error: "Faltam parâmetros." });
+
+    if (!main || !logo) {
+        return reply.status(400).send({ error: "Parâmetros 'main' e 'logo' são obrigatórios." });
+    }
+
+    // Mapeamento de posições para o Sharp
+    const positions = {
+        'centro': 'center',
+        'cima': 'north',
+        'baixo': 'south',
+        'canto': 'southeast'
+    };
+
+    const selectedGravity = positions[pos] || 'center';
 
     try {
-        const res = await axios.get(main, { responseType: 'arraybuffer' });
-        const output = await processWatermark(res.data, logo, pos);
+        // Busca as duas imagens simultaneamente
+        const [mainRes, logoRes] = await Promise.all([
+            axios.get(main, { responseType: 'arraybuffer' }),
+            axios.get(logo, { responseType: 'arraybuffer' })
+        ]);
+
+        // Carrega os metadados da imagem principal para calcular o quadrado
+        const mainImg = sharp(mainRes.data);
+        const metadata = await mainImg.metadata();
+
+        // Define o tamanho do quadrado baseado no maior lado (largura ou altura)
+        const squareSize = Math.max(metadata.width, metadata.height);
+
+        // Processa a logo: 30% da largura do novo quadrado (ajustável)
+        const logoWidth = Math.floor(squareSize * 0.30);
+        const processedLogo = await sharp(logoRes.data)
+            .resize(logoWidth)
+            .toBuffer();
+
+        // Geração da imagem final
+        const output = await mainImg
+            .resize(squareSize, squareSize, {
+                fit: 'contain', // Mantém a imagem inteira sem cortar
+                background: { r: 255, g: 255, b: 255, alpha: 1 } // Fundo branco (Bordas)
+            })
+            .composite([{ 
+                input: processedLogo, 
+                gravity: selectedGravity,
+                blend: 'over' 
+            }])
+            .png() // Converte para PNG para manter transparência da logo se houver
+            .toBuffer();
+
+        // Retorna a imagem processada
         reply.type('image/png').send(output);
-    } catch (e) {
-        reply.status(500).send({ error: "Erro no GET: " + e.message });
+
+    } catch (error) {
+        fastify.log.error(error);
+        reply.status(500).send({ error: "Erro ao processar as imagens. Verifique as URLs enviadas." });
     }
 });
 
-// 2. POST para Imagens Binárias
-fastify.post('/watermark', async (request, reply) => {
+const start = async () => {
     try {
-        const data = request.body;
-        let mainBuffer;
-
-        // Verifica se é arquivo binário ou URL no corpo do POST
-        if (data.main && data.main.file) {
-            mainBuffer = await data.main.toBuffer();
-        } else {
-            const res = await axios.get(data.main.value, { responseType: 'arraybuffer' });
-            mainBuffer = res.data;
-        }
-
-        const output = await processWatermark(mainBuffer, data.logo.value, data.pos?.value || 'centro');
-        reply.type('image/png').send(output);
-    } catch (e) {
-        reply.status(500).send({ error: "Erro no POST: " + e.message });
+        await fastify.listen({ port: 3028, host: '0.0.0.0' });
+        console.log("Servidor rodando em http://localhost:3028");
+    } catch (err) {
+        fastify.log.error(err);
+        process.exit(1);
     }
-});
+};
 
-fastify.listen({ port: 3028, host: '0.0.0.0' });
+start();
